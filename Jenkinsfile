@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    environment {
+        SONAR_SCANNER_HOME = '/opt/sonar-scanner-5.0.1.3006-linux'
+    }
+
     stages {
         stage("Checkout from GitHub") {
             steps {
@@ -14,25 +18,28 @@ pipeline {
                 }
             }
         }
-        
-        // Add more stages for your build and deployment process as needed
-        
+
         stage("Maven Clean Package") {
             steps {
                 sh "mvn clean package"
             }
         }
-        
+
         stage("Maven Test Result") {
             steps {
                 sh "mvn test"
             }
         }
-         stage("SonarQube Analysis") {
+
+        stage("SonarQube Analysis") {
             steps {
                 script {
-                    withSonarQubeEnv(credentialsId: 'sonarqube') {
-                        sh "mvn sonar:sonar"
+                    withSonarQubeEnv(credentialsId: 'sonarqube', installationName: 'sc') {
+                        sh "${env.SONAR_SCANNER_HOME}/bin/sonar-scanner " +
+                            "-Dsonar.projectKey=spring-boot-demo " +
+                            "-Dsonar.sources=src " +
+                            "-Dsonar.host.url=http://34.87.35.49:9000/ " +
+                            "-Dsonar.login=75dc7b0013de66f73b58bfb72da63f5ec571bd"
                     }
                 }
             }
