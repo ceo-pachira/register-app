@@ -34,7 +34,7 @@ pipeline {
         stage("SonarQube Analysis") {
             steps {
                 script {
-                    withSonarQubeEnv(credentialsId: 'sonarqube', installationName: 'sc') {
+                    withSonarQubeEnv(installationName: 'sc') {
                         sh "${env.SONAR_SCANNER_HOME}/bin/sonar-scanner " +
                             "-Dsonar.projectKey=spring-boot-demo " +
                             "-Dsonar.sources=src " +
