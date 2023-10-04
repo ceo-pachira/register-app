@@ -1,116 +1,34 @@
 pipeline {
-
     agent any
-    
-    tools {
-        jdk 'Java17'
-        maven 'Maven3'
-    }
-    environment {
-        APP_NAME = "register-app-pipeline"
-        RELEASE = "1.0.0"
-        DOCKER_USER = "ptmjyothish"
-        DOCKER_PASS = 'dockerhub'
-        IMAGE_NAME = "${DOCKER_USER}" + "/" + "${APP_NAME}"
-        IMAGE_TAG = "${RELEASE}-${BUILD_NUMBER}"
-        JENKINS_API_TOKEN = credentials("JENKINS_API_TOKEN")
-    }
+
     stages {
-        stage("Cleanup Workspace") {
+        stage("Checkout from GitHub") {
             steps {
-                cleanWs()
-            }
-        }
-
-        stage("Checkout from SCM") {
-            steps {
-                git branch: 'main', url: 'https://github.com/ceo-pachira/register-app'
-            }
-        }
-
-        stage("Build Application") {
-            steps {
-                sh "mvn clean package"
-            }
-        }
-
-        stage("Test Application") {
-            steps {
-                sh "mvn test"
-            }
-        }
-
-        stage("SonarQube Analysis") {
-            steps {
+                // Checkout code from the GitHub repository
                 script {
-                    withSonarQubeEnv(credentialsId: 'sonarqube') {
-                        sh "mvn sonar:sonar"
-                    }
+                    def gitRepoUrl = 'https://github.com/ceo-pachira/register-app.git'
+                    checkout([$class: 'GitSCM',
+                        branches: [[name: 'main']],
+                        userRemoteConfigs: [[url: gitRepoUrl]]
+                    ])
                 }
             }
         }
-
-        stage("Quality Gate") {
+        
+        // Add more stages for your build and deployment process as needed
+        
+        stage("Build") {
             steps {
-                script {
-                    waitForQualityGate abortPipeline: false, credentialsId: 'sonarqube'
-                }
+                // Your build steps here
             }
         }
-
-        stage('Build and Push Docker Image') {
+        
+        stage("Deploy") {
             steps {
-                script {
-                    // Bind DockerHub credentials
-                    withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                        sh """
-                        docker login -u \${DOCKER_USER} -p \${DOCKER_PASS}
-                        docker build -t \${IMAGE_NAME}:\${IMAGE_TAG} .
-                        docker push \${IMAGE_NAME}:\${IMAGE_TAG}
-                        """
-                    }
-                }
-            }
-        }
-
-        stage("Trivy Scan") {
-            steps {
-                script {
-                    sh ('docker run -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image ptmjyothish/register-app-pipeline:latest --no-progress --scanners vuln  --exit-code 0 --severity HIGH,CRITICAL --format table')
-                }
-            }
-        }
-
-        stage ('Cleanup Artifacts') {
-            steps {
-                script {
-                    sh "docker rmi ${IMAGE_NAME}:${IMAGE_TAG}"
-                    sh "docker rmi ${IMAGE_NAME}:latest"
-                }
-            }
-        }
-
-        stage("Trigger CD Pipeline") {
-            steps {
-                script {
-                    sh "curl -v -k --user clouduser:${JENKINS_API_TOKEN} -X POST -H 'cache-control: no-cache' -H 'content-type: application/x-www-form-urlencoded' --data 'IMAGE_TAG=${IMAGE_TAG}' 'ec2-13-232-128-192.ap-south-1.compute.amazonaws.com:8080/job/gitops-register-app-cd/buildWithParameters?token=gitops-token'"
-                }
+                // Your deployment steps here
             }
         }
     }
 
-    post {
-        failure {
-            emailext body: '''${SCRIPT, template="groovy-html.template"}''',
-                    subject: "${env.JOB_NAME} - Build # ${env.BUILD_NUMBER} - Failed",
-                    mimeType: 'text/html',
-                    to: "ashfaque.s510@gmail.com"
-        }
-        success {
-            emailext body: '''${SCRIPT, template="groovy-html.template"}''',
-                    subject: "${env.JOB_NAME} - Build # ${env.BUILD_NUMBER} - Successful",
-                    mimeType: 'text/html',
-                    to: "ashfaque.s510@gmail.com"
-        }
-    }
+    // Post-build actions and other configurations go here
 }
