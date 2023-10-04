@@ -34,13 +34,13 @@ pipeline {
         stage("SonarQube Analysis") {
             steps {
                 script {
-                    withSonarQubeEnv(installationName: 'sc') {
+                 
                         sh "${env.SONAR_SCANNER_HOME}/bin/sonar-scanner " +
                             "-Dsonar.projectKey=spring-boot-demo " +
                             "-Dsonar.sources=src " +
                             "-Dsonar.host.url=http://34.87.35.49:9000/ " +
                             "-Dsonar.login=75dc7b0013de66f73b58bfb72da63f5ec571bd"
-                    }
+                 
                 }
             }
         }
