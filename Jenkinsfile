@@ -17,15 +17,24 @@ pipeline {
         
         // Add more stages for your build and deployment process as needed
         
-        stage("Build") {
+        stage("Maven Clean Package") {
             steps {
                 sh "mvn clean package"
             }
         }
         
-        stage("Test") {
+        stage("Maven Test Result") {
             steps {
                 sh "mvn test"
+            }
+        }
+         stage("SonarQube Analysis") {
+            steps {
+                script {
+                    withSonarQubeEnv(credentialsId: 'sonarqube') {
+                        sh "mvn sonar:sonar"
+                    }
+                }
             }
         }
     }
